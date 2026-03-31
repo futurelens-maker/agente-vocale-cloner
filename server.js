@@ -4,7 +4,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
 const GEMINI_WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
@@ -14,7 +14,7 @@ const systemPrompt = fs.readFileSync(path.join(__dirname, 'prompt.md'), 'utf-8')
 const app = express();
 app.use(express.static('public'));
 const server = app.listen(PORT, () => {
-  console.log(`Server Express in ascolto sulla porta ${PORT}`);
+  console.log(`Server online sulla porta ${PORT}`);
 });
 
 const wss = new WebSocketServer({ server });
