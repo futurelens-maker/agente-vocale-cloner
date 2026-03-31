@@ -26,8 +26,10 @@
   let agentSpeaking   = false;  // true mentre l'agente riproduce audio → mic muto
   let silenceTimer    = null;   // VAD client-side: timer per rilevare fine parlato
   let isTalking       = false;  // true mentre l'utente sta parlando
-  const SILENCE_MS    = 350;   // ms di silenzio prima di segnalare activityEnd
-  const RMS_THRESHOLD = 0.010; // soglia noise gate (più alta per mobile)
+  let noiseFloor      = 0.008;  // stima adattiva del rumore di fondo
+  const SILENCE_MS      = 320;   // ms di silenzio prima di segnalare activityEnd
+  const RMS_FLOOR       = 0.006; // soglia minima assoluta (stanza silenziosissima)
+  const RMS_MULTIPLIER  = 3.5;   // soglia = floor * moltiplicatore (adattiva)
 
   // ── UI HELPERS ──────────────────────────────────────────────────────────────
   function setState(state, text) {
@@ -192,13 +194,18 @@
       if (agentSpeaking) return; // mic muto mentre l'agente parla (anti-echo)
       const chunk = e.inputBuffer.getChannelData(0);
 
-      // Noise gate: calcola RMS e scarta se sotto la soglia (rumore di fondo)
+      // Noise gate adattivo: calcola RMS e aggiorna stima del rumore di fondo
       let sumSq = 0;
       for (let i = 0; i < chunk.length; i++) sumSq += chunk[i] * chunk[i];
       const rms = Math.sqrt(sumSq / chunk.length);
-      if (rms < RMS_THRESHOLD) {
+      const threshold = Math.max(RMS_FLOOR, noiseFloor * RMS_MULTIPLIER);
+      if (rms < threshold) {
+        // Frame silenzioso: aggiorna lentamente il noise floor verso il basso
+        if (!isTalking) noiseFloor = noiseFloor * 0.95 + rms * 0.05;
         return; // rumore di fondo: non inviare, non resettare il timer
       }
+      // Frame vocale: aggiorna noise floor verso l'alto solo leggermente
+      noiseFloor = noiseFloor * 0.98 + rms * 0.02;
 
       // Chunk vocale valido: segnala inizio attività se non già attivo
       if (!isTalking) {
@@ -256,6 +263,7 @@
       agentSpeaking = false;
       isTalking     = false;
       nextPlayTime  = 0;
+      noiseFloor    = 0.008; // reset stima rumore a ogni nuova sessione
       setState('listening', 'Connesso — in ascolto');
       try {
         await startMic();
