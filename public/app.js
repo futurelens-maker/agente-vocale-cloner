@@ -26,7 +26,8 @@
   let agentSpeaking   = false;  // true mentre l'agente riproduce audio → mic muto
   let silenceTimer    = null;   // VAD client-side: timer per rilevare fine parlato
   let isTalking       = false;  // true mentre l'utente sta parlando
-  const SILENCE_MS    = 400;   // ms di silenzio prima di segnalare activityEnd
+  const SILENCE_MS    = 350;   // ms di silenzio prima di segnalare activityEnd
+  const RMS_THRESHOLD = 0.010; // soglia noise gate (più alta per mobile)
 
   // ── UI HELPERS ──────────────────────────────────────────────────────────────
   function setState(state, text) {
@@ -174,6 +175,7 @@
       channelCount: 1,
       echoCancellation: true,
       noiseSuppression: true,
+      autoGainControl: false,  // disabilitato: evita amplificazione del rumore di fondo su mobile
     }});
 
     audioCtxIn = new AudioContext({ sampleRate: SAMPLE_RATE });
@@ -194,7 +196,7 @@
       let sumSq = 0;
       for (let i = 0; i < chunk.length; i++) sumSq += chunk[i] * chunk[i];
       const rms = Math.sqrt(sumSq / chunk.length);
-      if (rms < 0.005) {
+      if (rms < RMS_THRESHOLD) {
         return; // rumore di fondo: non inviare, non resettare il timer
       }
 
