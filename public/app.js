@@ -1,6 +1,7 @@
 (() => {
   // ── CONFIG ──────────────────────────────────────────────────────────────────
-  const WS_URL        = `ws://${location.host}`;
+  const wsProtocol    = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const WS_URL        = `${wsProtocol}//${location.host}`;
   const SAMPLE_RATE   = 16000;   // Gemini richiede PCM 16kHz
   const CHUNK_MS      = 50;      // intervallo di invio chunk audio
   const OUT_SAMPLE    = 24000;   // Gemini output: 24kHz PCM16 LE
