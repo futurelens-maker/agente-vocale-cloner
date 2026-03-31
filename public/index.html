@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Cloner Concierge — The AI Cloner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080d14;
+      --surface:   #0e1520;
+      --border:    #1a2a3a;
+      --accent:    #00c4b0;
+      --accent-dim:#007a70;
+      --text:      #e8f0fe;
+      --muted:     #4a6080;
+      --danger:    #e05555;
+      --listening: #00c4b0;
+      --speaking:  #1e6eb8;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    /* hotel background image — blurred, non-invasive */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('hotel-bg.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: blur(8px) brightness(0.18);
+      transform: scale(1.05);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* subtle grid texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,196,176,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,196,176,.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      background: rgba(8, 13, 20, 0.55);
+      backdrop-filter: blur(2px);
+      border-radius: 24px;
+      border: 1px solid rgba(0,196,176,.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 52px;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    /* ── HEADER ── */
+    .header { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+    .logo-line {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .title {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      line-height: 1.1;
+    }
+
+    .title span { font-weight: 700; color: var(--accent); }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ── ORB + BUTTON ── */
+    .orb-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 200px;
+      height: 200px;
+    }
+
+    .orb-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid var(--accent-dim);
+      opacity: 0;
+      transition: opacity .4s;
+    }
+
+    .orb-ring-1 { width: 200px; height: 200px; }
+    .orb-ring-2 { width: 240px; height: 240px; }
+    .orb-ring-3 { width: 280px; height: 280px; }
+
+    /* listening state: rings pulse */
+    body.state-listening .orb-ring { opacity: 1; animation: ring-pulse 2s ease-in-out infinite; }
+    body.state-listening .orb-ring-2 { animation-delay: .4s; }
+    body.state-listening .orb-ring-3 { animation-delay: .8s; }
+
+    /* speaking state: rings pulse faster, navy blue */
+    body.state-speaking .orb-ring {
+      opacity: 1;
+      border-color: var(--speaking);
+      animation: ring-pulse 1s ease-in-out infinite;
+    }
+    body.state-speaking .orb-ring-2 { animation-delay: .2s; }
+    body.state-speaking .orb-ring-3 { animation-delay: .4s; }
+
+    @keyframes ring-pulse {
+      0%,100% { transform: scale(1);   opacity: .6; }
+      50%      { transform: scale(1.04); opacity: .15; }
+    }
+
+    /* ── MAIN BUTTON ── */
+    #btn {
+      position: relative;
+      z-index: 2;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 1.5px solid var(--accent-dim);
+      background: var(--surface);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: border-color .3s, background .3s, transform .15s, box-shadow .3s;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #btn:hover { border-color: var(--accent); transform: scale(1.03); }
+    #btn:active { transform: scale(.97); }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      fill: var(--accent);
+      transition: fill .3s;
+      flex-shrink: 0;
+    }
+
+    .btn-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      line-height: 1.3;
+      transition: color .3s;
+    }
+
+    .btn-label small {
+      display: block;
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 1px;
+      opacity: .6;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* state variants */
+    body.state-listening #btn {
+      border-color: var(--listening);
+      box-shadow: 0 0 0 6px rgba(0,196,176,.1), 0 0 30px rgba(0,196,176,.15);
+    }
+    body.state-listening .btn-icon { fill: var(--listening); }
+    body.state-listening .btn-label { color: var(--listening); }
+
+    body.state-speaking #btn {
+      border-color: var(--speaking);
+      box-shadow: 0 0 0 6px rgba(30,110,184,.1), 0 0 30px rgba(30,110,184,.2);
+      cursor: pointer;
+    }
+
+    /* ── STATUS BAR ── */
+    .status {
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      height: 16px;
+      transition: color .3s;
+      min-width: 220px;
+    }
+
+    body.state-listening .status { color: var(--listening); }
+    body.state-speaking  .status { color: var(--accent); }
+    body.state-error     .status { color: var(--danger); }
+
+    /* ── FOOTER ── */
+    .footer {
+      position: fixed;
+      bottom: 24px;
+      z-index: 10;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── VISUALIZER ── */
+    #visualizer {
+      width: 220px;
+      height: 32px;
+      opacity: 0;
+      transition: opacity .4s;
+    }
+    body.state-listening #visualizer,
+    body.state-speaking  #visualizer { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="header">
+      <p class="logo-line">The Cloner Retreat · Riviera</p>
+      <h1 class="title">The <span>Cloner</span> Concierge</h1>
+      <p class="subtitle">AI Concierge &amp; Infrastructure Manager</p>
+    </header>
+
+    <div class="orb-wrapper">
+      <div class="orb-ring orb-ring-1"></div>
+      <div class="orb-ring orb-ring-2"></div>
+      <div class="orb-ring orb-ring-3"></div>
+
+      <button id="btn" aria-label="Avvia conversazione">
+        <!-- mic icon -->
+        <svg class="btn-icon" id="icon-mic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm0 2a2 2 0 0 0-2 2v6a2 2 0 0 0 4 0V5a2 2 0 0 0-2-2zm-7 8a1 1 0 0 1 1 1 6 6 0 0 0 12 0 1 1 0 1 1 2 0 8 8 0 0 1-7 7.94V22h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.06A8 8 0 0 1 4 12a1 1 0 0 1 1-1z"/>
+        </svg>
+        <span class="btn-label" id="btn-label">Parla con<br>il Concierge</span>
+      </button>
+    </div>
+
+    <canvas id="visualizer" width="220" height="32"></canvas>
+
+    <p class="status" id="status"></p>
+
+  </div>
+
+  <p class="footer">Demo creata da <span style="color: var(--accent); font-weight: 700; letter-spacing: 1px;">The AI Cloner</span></p>
+
+  <script src="app.js"></script>
+</body>
+</html>
